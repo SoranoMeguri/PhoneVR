@@ -212,9 +212,9 @@ task buildClientLib {
         exec {
             workingDir '../ALVR'
             if(defaultALVRFlavour.length() > 0)
-                commandLine 'cargo', 'xtask', 'build-client-lib', '--no-stdcpp', defaultALVRFlavour
+                commandLine 'cargo', 'run', '--package', 'alvr_xtask', '--', 'build-client-lib', '--no-stdcpp', defaultALVRFlavour
             else
-                commandLine 'cargo', 'xtask', 'build-client-lib', '--no-stdcpp'
+                commandLine 'cargo', 'run', '--package', 'alvr_xtask', '--', 'build-client-lib', '--no-stdcpp'
         }
     }
 }
