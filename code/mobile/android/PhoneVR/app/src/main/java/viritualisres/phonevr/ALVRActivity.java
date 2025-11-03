@@ -2,6 +2,7 @@
 package viritualisres.phonevr;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -20,6 +21,7 @@ import android.util.Log;
 import android.view.Display;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.PopupMenu;
@@ -46,6 +48,12 @@ public class ALVRActivity extends AppCompatActivity
     private GLSurfaceView glView;
 
     private final BatteryMonitor bMonitor = new BatteryMonitor(this);
+
+    // 向き設定の定数を追加
+    private static final int ORIENTATION_LANDSCAPE_LEFT = 0;
+    private static final int ORIENTATION_LANDSCAPE_RIGHT = 1;
+    private static final int ORIENTATION_PORTRAIT = 2;
+    private static final int ORIENTATION_PORTRAIT_UPSIDE_DOWN = 3;
 
     public static class BatteryMonitor extends BroadcastReceiver {
         private final BatteryLevelListener listener;
@@ -134,6 +142,30 @@ public class ALVRActivity extends AppCompatActivity
 
         // Prevents screen from dimming/locking.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        // 向き設定の読み込みと自動設定
+        if (prefs.contains("viewport_orientation")) {
+            // 保存された設定があればそれを読み込む
+            int orientation = prefs.getInt("viewport_orientation", ORIENTATION_LANDSCAPE_LEFT);
+            setOrientationNative(orientation);
+        } else {
+            // 保存された設定がなければ、デバイスの自然な向きからデフォルト値を決定する
+            int defaultOrientation;
+            int rotation = getWindowManager().getDefaultDisplay().getRotation();
+            if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
+                // 縦向きが自然なデバイス (Vive Flowなど)
+                defaultOrientation = ORIENTATION_LANDSCAPE_RIGHT;
+            } else {
+                // 横向きが自然な一般的なデバイス
+                defaultOrientation = ORIENTATION_LANDSCAPE_LEFT;
+            }
+            setOrientationNative(defaultOrientation);
+
+            // このデフォルト値を保存する
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putInt("viewport_orientation", defaultOrientation);
+            editor.apply();
+        }
     }
 
     @Override
@@ -237,6 +269,9 @@ public class ALVRActivity extends AppCompatActivity
             Intent intent = new Intent(this, InitActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(intent);
+        } else if (item.getItemId() == R.id.orientation_settings) {
+            showOrientationSettings();
+            return true;
         } else if (item.getItemId() == R.id.max_brightness_toggle) {
             // Save app setting boolean max_brightness == true
             item.setChecked(!item.isChecked());
@@ -246,6 +281,44 @@ public class ALVRActivity extends AppCompatActivity
             return true;
         }
         return false;
+    }
+
+    private void showOrientationSettings() {
+        String[] orientations = {
+            "Landscape Left", "Landscape Right", "Portrait", "Portrait Upside Down"
+        };
+        int[] orientationValues = {
+            ORIENTATION_LANDSCAPE_LEFT,
+            ORIENTATION_LANDSCAPE_RIGHT,
+            ORIENTATION_PORTRAIT,
+            ORIENTATION_PORTRAIT_UPSIDE_DOWN
+        };
+
+        int currentOrientation = getOrientationNative();
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select Screen Orientation")
+                .setSingleChoiceItems(
+                        orientations,
+                        currentOrientation,
+                        (dialog, which) -> {
+                            setOrientationNative(orientationValues[which]);
+
+                            // 設定を保存
+                            SharedPreferences.Editor editor =
+                                    getSharedPreferences("settings", MODE_PRIVATE).edit();
+                            editor.putInt("viewport_orientation", orientationValues[which]);
+                            editor.apply();
+
+                            Toast.makeText(
+                                            this,
+                                            "Orientation changed to: " + orientations[which],
+                                            Toast.LENGTH_SHORT)
+                                    .show();
+                            dialog.dismiss();
+                        })
+                .setNegativeButton("Cancel", null);
+        builder.create().show();
     }
 
     private boolean isReadExternalStorageEnabled() {
@@ -302,4 +375,9 @@ public class ALVRActivity extends AppCompatActivity
     private native void switchViewerNative();
 
     private native void sendBatteryLevel(float level, boolean plugged);
+
+    // ネイティブメソッドの宣言を追加
+    private native void setOrientationNative(int orientation);
+
+    private native int getOrientationNative();
 }
