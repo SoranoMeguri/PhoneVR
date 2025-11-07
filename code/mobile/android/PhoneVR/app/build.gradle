@@ -210,11 +210,11 @@ task deleteNdk(type: Delete) {
 task buildClientLib {
     doLast {
         exec {
-            workingDir '../ALVR'
+            workingDir '../ALVR/alvr'
             if(defaultALVRFlavour.length() > 0)
-                commandLine 'cargo', 'run', '--manifest-path', 'alvr/xtask/Cargo.toml', '--package', 'alvr_xtask', '--', 'build-client-lib', '--no-stdcpp', defaultALVRFlavour
+                commandLine 'cargo', 'run', '--package', 'alvr_xtask', '--', 'build-client-lib', '--no-stdcpp', defaultALVRFlavour
             else
-                commandLine 'cargo', 'run', '--manifest-path', 'alvr/xtask/Cargo.toml', '--package', 'alvr_xtask', '--', 'build-client-lib', '--no-stdcpp'
+                commandLine 'cargo', 'run', '--package', 'alvr_xtask', '--', 'build-client-lib', '--no-stdcpp'
         }
     }
 }
