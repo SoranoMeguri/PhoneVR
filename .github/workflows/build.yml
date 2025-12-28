@@ -28,83 +28,83 @@ on:
 #     working-directory: code/mobile/android/PhoneVR
 
 jobs:
-  Build_PVR_Server:
-    name: Build PhoneVR Server
-    if: github.event_name != 'repository_dispatch'
+  # Build_PVR_Server:
+  #   name: Build PhoneVR Server
+  #   if: github.event_name != 'repository_dispatch'
 
-    strategy:
-      fail-fast: false
-      matrix:
-        config: [Release, Debug]
-        platform:
-          - name: x64
-            msvc-platform-name: x64
-          - name: x86
-            msvc-platform-name: Win32
-    runs-on: windows-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       config: [Release, Debug]
+  #       platform:
+  #         - name: x64
+  #           msvc-platform-name: x64
+  #         - name: x86
+  #           msvc-platform-name: Win32
+  #   runs-on: windows-latest
 
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: 'true'
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #     with:
+  #       submodules: 'true'
     
-    - name: Install LLVM and Clang
-      uses: KyleMayes/install-llvm-action@v1
-      with:
-        version: "16.0.0"
+  #   - name: Install LLVM and Clang
+  #     uses: KyleMayes/install-llvm-action@v1
+  #     with:
+  #       version: "16.0.0"
     
-    - name: Clang-format check
-      shell: bash
-      run: |
-        clang-format --version
-        make format-check
+  #   - name: Clang-format check
+  #     shell: bash
+  #     run: |
+  #       clang-format --version
+  #       make format-check
   
-    # https://github.com/actions/runner-images/issues/842#issuecomment-1495115166
-    - name: Install MSVC 2017 (v141) and Windows 8.1 SDK for MSVS2022
-      shell: powershell
-      run: |
-        env
+  #   # https://github.com/actions/runner-images/issues/842#issuecomment-1495115166
+  #   - name: Install MSVC 2017 (v141) and Windows 8.1 SDK for MSVS2022
+  #     shell: powershell
+  #     run: |
+  #       env
 
-        # tree "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools" /F - empty folder
-        # tree "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" /F - github-runners MSVS Installation folder
-        # VCTargetsPath="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Microsoft\VC\v170\" where Microsoft.Cpp.Default.props resides
+  #       # tree "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools" /F - empty folder
+  #       # tree "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" /F - github-runners MSVS Installation folder
+  #       # VCTargetsPath="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Microsoft\VC\v170\" where Microsoft.Cpp.Default.props resides
 
-        $VS_BTOOLS_EXE="vs_buildtools.exe"
-        $VS_BTOOLS_URI="https://aka.ms/vs/17/release/vs_buildtools.exe"
-        Invoke-WebRequest -Uri $VS_BTOOLS_URI -OutFile $VS_BTOOLS_EXE
-        Start-Process -FilePath ./vs_BuildTools.exe -ArgumentList `
-        "--add", "Microsoft.VisualStudio.Component.VC.v141.x86.x64", `
-        "--quiet", "--norestart", "--force", "--wait" -Wait -PassThru -nonewwindow
+  #       $VS_BTOOLS_EXE="vs_buildtools.exe"
+  #       $VS_BTOOLS_URI="https://aka.ms/vs/17/release/vs_buildtools.exe"
+  #       Invoke-WebRequest -Uri $VS_BTOOLS_URI -OutFile $VS_BTOOLS_EXE
+  #       Start-Process -FilePath ./vs_BuildTools.exe -ArgumentList `
+  #       "--add", "Microsoft.VisualStudio.Component.VC.v141.x86.x64", `
+  #       "--quiet", "--norestart", "--force", "--wait" -Wait -PassThru -nonewwindow
 
-        # 8.1 SDK is no longer available in latest github-runners and MSVS2022/2019 build tools
-        # have to download it manually like https://stackoverflow.com/a/77947878
+  #       # 8.1 SDK is no longer available in latest github-runners and MSVS2022/2019 build tools
+  #       # have to download it manually like https://stackoverflow.com/a/77947878
         
-        Invoke-WebRequest -Uri https://go.microsoft.com/fwlink/p/?LinkId=323507 -OutFile sdk81setup.exe
-        Start-Process -FilePath ./sdk81setup.exe -ArgumentList "/features +", "/q", "/norestart" -Wait -PassThru -nonewwindow
+  #       Invoke-WebRequest -Uri https://go.microsoft.com/fwlink/p/?LinkId=323507 -OutFile sdk81setup.exe
+  #       Start-Process -FilePath ./sdk81setup.exe -ArgumentList "/features +", "/q", "/norestart" -Wait -PassThru -nonewwindow
 
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v2.0.0
-      with:
-        vs-version: '17'
+  #   - name: Add MSBuild to PATH
+  #     uses: microsoft/setup-msbuild@v2.0.0
+  #     with:
+  #       vs-version: '17'
 
-    - name: Building ${{matrix.platform.name}}-${{matrix.config}}
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      # Add additional options to the MSBuild command line here (like platform or verbosity level).
-      # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: | 
-        env
+  #   - name: Building ${{matrix.platform.name}}-${{matrix.config}}
+  #     working-directory: ${{env.GITHUB_WORKSPACE}}
+  #     # Add additional options to the MSBuild command line here (like platform or verbosity level).
+  #     # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
+  #     run: |
+  #       env
         
-        $env:VCTargetsPath="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Microsoft\VC\v170\"
+  #       $env:VCTargetsPath="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Microsoft\VC\v170\"
         
-        env
+  #       env
 
-        msbuild /m /p:Configuration=${{matrix.config}} /p:Platform=${{matrix.platform.name}} ${{env.SOLUTION_FILE_PATH}}
+  #       msbuild /m /p:Configuration=${{matrix.config}} /p:Platform=${{matrix.platform.name}} ${{env.SOLUTION_FILE_PATH}}
 
-    - name: Upload Build outputs
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.PROJECT_NAME }}-Server-${{ matrix.config }}-${{ matrix.platform.name }}
-        path: ${{ env.SOLUTION_DIR }}\${{ matrix.config }}\${{ matrix.platform.msvc-platform-name }}
+  #   - name: Upload Build outputs
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #       name: ${{ env.PROJECT_NAME }}-Server-${{ matrix.config }}-${{ matrix.platform.name }}
+  #       path: ${{ env.SOLUTION_DIR }}\${{ matrix.config }}\${{ matrix.platform.msvc-platform-name }}
   
   Build_APK:
     name: Build Android APK
@@ -165,13 +165,11 @@ jobs:
           ls -alh
           ls -alh app
       
-      # Create APK Debug
       - name: Build apk noGvr debug project (APK)
         run:  |
           cd code/mobile/android/PhoneVR
           ./gradlew :${{ env.MAIN_PROJECT_MODULE }}:assembleNoGvrDebug --warning-mode=all --stacktrace -Dorg.gradle.java.home=${{env.JAVA_HOME}}
 
-      # Create APK Release
       - name: Build apk noGvr release project (APK)
         env:
           Key: ${{ secrets.KEY }}
@@ -187,13 +185,11 @@ jobs:
           chmod +x prepare-alvr-deps.sh
           bash prepare-alvr-deps.sh
       
-      # Create APK Debug
       - name: Build apk gvr debug project (APK)
         run:  |
           cd code/mobile/android/PhoneVR
           ./gradlew :${{ env.MAIN_PROJECT_MODULE }}:assembleGvrDebug --warning-mode=all --stacktrace -Dorg.gradle.java.home=${{env.JAVA_HOME}}
 
-      # Create APK Release
       - name: Build apk gvr release project (APK)
         env:
           Key: ${{ secrets.KEY }}
