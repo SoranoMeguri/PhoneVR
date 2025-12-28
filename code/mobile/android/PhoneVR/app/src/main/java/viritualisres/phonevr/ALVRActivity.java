@@ -2,6 +2,7 @@
 package viritualisres.phonevr;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -42,6 +43,12 @@ public class ALVRActivity extends AppCompatActivity
 
     // Permission request codes
     private static final int PERMISSIONS_REQUEST_CODE = 2;
+
+    // Orientation constants
+    private static final int ORIENTATION_LANDSCAPE_LEFT = 0;
+    private static final int ORIENTATION_LANDSCAPE_RIGHT = 1;
+    private static final int ORIENTATION_PORTRAIT = 2;
+    private static final int ORIENTATION_PORTRAIT_UPSIDE_DOWN = 3;
 
     private GLSurfaceView glView;
 
@@ -237,6 +244,9 @@ public class ALVRActivity extends AppCompatActivity
             Intent intent = new Intent(this, InitActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             startActivity(intent);
+        } else if (item.getItemId() == R.id.orientation_settings) {
+            showOrientationSettings();
+            return true;
         } else if (item.getItemId() == R.id.max_brightness_toggle) {
             // Save app setting boolean max_brightness == true
             item.setChecked(!item.isChecked());
@@ -246,6 +256,42 @@ public class ALVRActivity extends AppCompatActivity
             return true;
         }
         return false;
+    }
+
+    private void showOrientationSettings() {
+        String[] orientations = {
+            getString(R.string.landscape_left),
+            getString(R.string.landscape_right),
+            getString(R.string.portrait),
+            getString(R.string.portrait_upside_down)
+        };
+        int[] orientationValues = {
+            ORIENTATION_LANDSCAPE_LEFT,
+            ORIENTATION_LANDSCAPE_RIGHT,
+            ORIENTATION_PORTRAIT,
+            ORIENTATION_PORTRAIT_UPSIDE_DOWN
+        };
+
+        int currentOrientation = getOrientationNative();
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getString(R.string.select_orientation))
+                .setSingleChoiceItems(
+                        orientations,
+                        currentOrientation,
+                        (dialog, which) -> {
+                            setOrientationNative(orientationValues[which]);
+                            Toast.makeText(
+                                            this,
+                                            getString(
+                                                    R.string.orientation_changed,
+                                                    orientations[which]),
+                                            Toast.LENGTH_SHORT)
+                                    .show();
+                            dialog.dismiss();
+                        })
+                .setNegativeButton(getString(R.string.cancel), null);
+        builder.create().show();
     }
 
     private boolean isReadExternalStorageEnabled() {
@@ -302,4 +348,8 @@ public class ALVRActivity extends AppCompatActivity
     private native void switchViewerNative();
 
     private native void sendBatteryLevel(float level, boolean plugged);
+
+    private native void setOrientationNative(int orientation);
+
+    private native int getOrientationNative();
 }

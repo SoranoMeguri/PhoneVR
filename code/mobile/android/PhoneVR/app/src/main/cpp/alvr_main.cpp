@@ -40,6 +40,9 @@ struct NativeContext {
     bool streaming = false;
     std::thread inputThread;
 
+    // Added: Viewport orientation (Default to kLandscapeRight for Vive Flow)
+    CardboardViewportOrientation viewportOrientation = kLandscapeRight;
+
     // Une one texture per eye, no need for swapchains.
     GLuint lobbyTextures[2] = {0, 0};
     GLuint streamTextures[2] = {0, 0};
@@ -110,7 +113,8 @@ AlvrPose getPose(uint64_t timestampNs) {
 
     float pos[3];
     float q[4];
-    CardboardHeadTracker_getPose(CTX.headTracker, (int64_t) timestampNs, kLandscapeLeft, pos, q);
+    CardboardHeadTracker_getPose(
+        CTX.headTracker, (int64_t) timestampNs, CTX.viewportOrientation, pos, q);
 
     auto inverseOrientation = AlvrQuat{q[0], q[1], q[2], q[3]};
     pose.orientation = inverseQuat(inverseOrientation);
@@ -540,4 +544,15 @@ extern "C" JNIEXPORT void JNICALL Java_viritualisres_phonevr_ALVRActivity_render
 extern "C" JNIEXPORT void JNICALL
 Java_viritualisres_phonevr_ALVRActivity_switchViewerNative(JNIEnv *, jobject) {
     CardboardQrCode_scanQrCodeAndSaveDeviceParams();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_viritualisres_phonevr_ALVRActivity_setOrientationNative(JNIEnv *, jobject, jint orientation) {
+    CTX.viewportOrientation = (CardboardViewportOrientation) orientation;
+    info("Viewport orientation set to: %d", orientation);
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_viritualisres_phonevr_ALVRActivity_getOrientationNative(JNIEnv *, jobject) {
+    return (jint) CTX.viewportOrientation;
 }
